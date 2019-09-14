@@ -5,13 +5,17 @@ import * as bcrypt from 'bcrypt';
 
 import { User } from '../types/user';
 import { RegisterDTO, LoginDTO } from '../auth/auth.dto';
+import { Payload } from 'src/types/payload';
 
 @Injectable()
 export class UserService {
   constructor(@InjectModel('User') private userModel: Model<User>) {}
 
-  private sanitazeUser(user: User) {
-    return user.depopulate('password');
+  private sanitizeUser(user: User) {
+    // return user.depopulate('password');
+    const sanitized = user.toObject();
+    delete sanitized['password'];
+    return sanitized;
   }
 
   async create(userDTO: RegisterDTO) {
@@ -23,7 +27,7 @@ export class UserService {
 
     const createdUser = new this.userModel(userDTO);
     await createdUser.save();
-    return this.sanitazeUser(createdUser);
+    return this.sanitizeUser(createdUser);
   }
 
   async findByLogin(userDTO: LoginDTO) {
@@ -34,13 +38,13 @@ export class UserService {
     }
 
     if (await bcrypt.compare(password, user.password)) {
-      return this.sanitazeUser(user);
+      return this.sanitizeUser(user);
     } else {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
   }
 
-  async findByPayload(payload: any) {
+  async findByPayload(payload: Payload) {
     const { username } = payload;
     return await this.userModel.findOne({ username });
   }
